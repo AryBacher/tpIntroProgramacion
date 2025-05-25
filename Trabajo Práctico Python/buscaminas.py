@@ -1,6 +1,7 @@
 import random
 from typing import Any
 import os
+from queue import Queue as Cola
 
 # Constantes para dibujar
 BOMBA = chr(128163)  # simbolo de una mina
@@ -14,6 +15,8 @@ def existe_archivo(ruta_directorio: str, nombre_archivo:str) -> bool:
     """Chequea si existe el archivo en la ruta dada"""
     return os.path.exists(os.path.join(ruta_directorio, nombre_archivo))
 
+
+# Ejercicio 1
 def colocar_minas(filas:int, columnas: int, minas:int) -> list[list[int]]:
     matriz: list[list[int]] = []
 
@@ -39,26 +42,13 @@ def posiciones_matriz(matriz: list[list[int]]) -> list[tuple[int, int]]:
 
     return posicionesMatriz
 
-# def colocar_minas2(filas:int, columnas: int, minas:int) -> list[list[int]]:
-#     matriz: list = []
-#     cantidad_minas: int = 0
-#     for i in range(filas):
-#         fila = []
-#         for j in range(columnas):
-#             if cantidad_minas < minas: 
-#                 fila.append(-1)
-#                 cantidad_minas += 1
-#             else: 
-#                 fila.append(0)     
-#         matriz.append(fila)
-    
-#     return matriz 
-
+# Ejercicio 2
 def calcular_numeros(tablero: list[list[int]]) -> None:
     for num_fila in range(len(tablero)):
         for num_columna in range(len(tablero[0])):
             if tablero[num_fila][num_columna] == 0: 
                 tablero[num_fila][num_columna] = cant_minas_adyacentes(tablero, (num_fila, num_columna))
+
 
 def elementos_adyacentes(tablero: list[list[int]], posicion: tuple[int, int]) -> list[tuple[int, int]]:
     elementosAdyacentes: list[tuple[int, int]] = []
@@ -99,6 +89,7 @@ def cant_minas_adyacentes(tablero: list[list[int]], posicion: tuple[int, int]) -
 #                 cantidad += 1
 #     return cantidad 
 
+# Ejercicio 3
 def crear_juego(filas:int, columnas:int, minas:int) -> EstadoJuego:
     estado: EstadoJuego = {}
     estado['filas'] = filas
@@ -121,27 +112,89 @@ def crear_juego(filas:int, columnas:int, minas:int) -> EstadoJuego:
 
     return estado
 
+# Ejercicio 4
 def obtener_estado_tablero_visible(estado: EstadoJuego) -> list[list[str]]:
     estadoTableroVisible = estado['tablero_visible']
     return estadoTableroVisible
 
-
+# Ejercicio 5
 def marcar_celda(estado: EstadoJuego, fila: int, columna: int) -> None:
     if estado['tablero_visible'][fila][columna] == VACIO:
         estado['tablero_visible'][fila][columna] = BANDERA
-    if estado['tablero_visible'][fila][columna] == BANDERA:
+    elif estado['tablero_visible'][fila][columna] == BANDERA:
         estado['tablero_visible'][fila][columna] = VACIO
 
+# Ejercicio 6
 def descubrir_celda(estado: EstadoJuego, fila: int, columna: int) -> None:
-    return
+    if estado['juego_terminado'] == True:
+        return
+    if estado['tablero'][fila][columna] == -1:
+        estado['juego_terminado'] = True
+        mostrar_todas_las_minas(estado)
+        return
+    
+    descubrir_celdas_seguras(estado, fila, columna)
+
+    if todas_celdas_seguras_descubiertas(estado):
+        estado['juego_terminado'] = True
+
+def mostrar_todas_las_minas(estado: EstadoJuego) -> None:
+    for i in range(estado['filas']):
+        for j in range(estado['columnas']):
+            if estado['tablero'][i][j] == -1:
+                estado['tablero_visible'][i][j] = BOMBA
+
+# Falta terminar, me mareé en el medio
+def descubrir_celdas_seguras(estado: EstadoJuego, fila: int, columna: int) -> None:
+    cola: Cola[tuple[int, int]] = Cola()
+    cola.put((fila, columna))
+    visitadas: list[tuple[int, int]] = []
+
+    while not cola.empty():
+        fila_actual, columna_actual = cola.get()
+        
+        # Verificar límites del tablero
+        if not (0 <= fila_actual < estado['filas'] and 0 <= columna_actual < estado['columnas']):
+            continue
+            
+        if ((fila_actual, columna_actual) in visitadas or 
+            estado['tablero_visible'][fila_actual][columna_actual] != VACIO or 
+            estado['tablero'][fila_actual][columna_actual] == -1):
+            continue
+            
+        visitadas.append((fila_actual, columna_actual))
+        estado['tablero_visible'][fila_actual][columna_actual] = str(estado['tablero'][fila_actual][columna_actual])
+        
+        if estado['tablero'][fila_actual][columna_actual] == 0:
+            for i in range(fila_actual - 1, fila_actual + 2):
+                for j in range(columna_actual - 1, columna_actual + 2):
+                    if (i, j) != (fila_actual, columna_actual):
+                        cola.put((i, j))
 
 
-def verificar_victoria(estado: EstadoJuego) -> bool:
+def todas_celdas_seguras_descubiertas(estadoTablero: EstadoJuego['tablero'], estadoTableroVisible: EstadoJuego['tablero_visible']) -> bool:
+    for i in range(len(estadoTablero)):
+        for j in range(len(estadoTablero[0])):
+            if estadoTablero[i][j] != -1 and estadoTableroVisible[i][j] == VACIO:
+                return False
     return True
+        
 
+# Ejercicio 7
+def verificar_victoria(estado: EstadoJuego) -> bool:
+    return todas_celdas_seguras_descubiertas(estado['tablero'], estado['tablero_visible'])
 
+# Ejercicio 8
 def reiniciar_juego(estado: EstadoJuego) -> None:
-    return
+    estado['juego_terminado'] = False
+    estado['tablero_visible'] = []
+    for _ in range(estado['filas']):
+        fila: list = []
+        for _ in range(estado['columnas']):
+            fila.append(VACIO)
+        estado['tablero_visible'].append(fila)
+    estado['tablero'] = colocar_minas(estado['filas'], estado['columnas'], estado['minas'])
+
 
 
 def guardar_estado(estado: EstadoJuego, ruta_directorio: str) -> None:
