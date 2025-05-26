@@ -71,24 +71,6 @@ def cant_minas_adyacentes(tablero: list[list[int]], posicion: tuple[int, int]) -
 
     return cantMinasAdyacentes
 
-# def calcular_numeros2(tablero: list[list[int]]) -> None:
-#     tablero_nuevo: list[list[int]] = tablero
-#     for fila in tablero:
-#         for elemento in range(len(fila)):
-#             if fila[elemento] == 0:
-#                 fila[elemento] = cantidad_elementos(tablero,(-1))
-    
-#     return tablero_nuevo
-            
-    
-# def cantidad_elementos(matriz: list[list[int]], n: int) -> int:
-#     cantidad: int = 0
-#     for fila in matriz:
-#         for elemento in range(len(fila)):
-#             if fila[elemento] == n:
-#                 cantidad += 1
-#     return cantidad 
-
 # Ejercicio 3
 def crear_juego(filas:int, columnas:int, minas:int) -> EstadoJuego:
     estado: EstadoJuego = {}
