@@ -115,44 +115,27 @@ def descubrir_celda(estado: EstadoJuego, fila: int, columna: int) -> None:
         mostrar_todas_las_minas(estado)
         return
     
-    descubrir_celdas_seguras(estado, fila, columna)
-
     if todas_celdas_seguras_descubiertas(estado):
         estado['juego_terminado'] = True
+
+def caminos_descubiertos(tablero: list[list[int]], tablero_visible: list[list[str]], f: int, c: int) -> list[list[tuple[int, int]]]:
+    """
+    Encuentra todos los caminos posibles desde la posición (f,c) que cumplan las condiciones:
+    - Secuencias de posiciones válidas sin repetidos
+    - Primer elemento es (f,c)
+    - Si |s| > 1, todos los elementos salvo el último deben tener valor 0 en tablero
+    - No debe haber posiciones con BANDERA en tablero_visible
+    - Elementos contiguos deben ser adyacentes
+    """
+    caminos: list[list[tuple[int, int]]] = []
+    
+    return caminos
 
 def mostrar_todas_las_minas(estado: EstadoJuego) -> None:
     for i in range(estado['filas']):
         for j in range(estado['columnas']):
             if estado['tablero'][i][j] == -1:
                 estado['tablero_visible'][i][j] = BOMBA
-
-# Falta terminar, me mareé en el medio
-def descubrir_celdas_seguras(estado: EstadoJuego, fila: int, columna: int) -> None:
-    cola: Cola[tuple[int, int]] = Cola()
-    cola.put((fila, columna))
-    visitadas: list[tuple[int, int]] = []
-
-    while not cola.empty():
-        fila_actual, columna_actual = cola.get()
-        
-        # Verificar límites del tablero
-        if not (0 <= fila_actual < estado['filas'] and 0 <= columna_actual < estado['columnas']):
-            continue
-            
-        if ((fila_actual, columna_actual) in visitadas or 
-            estado['tablero_visible'][fila_actual][columna_actual] != VACIO or 
-            estado['tablero'][fila_actual][columna_actual] == -1):
-            continue
-            
-        visitadas.append((fila_actual, columna_actual))
-        estado['tablero_visible'][fila_actual][columna_actual] = str(estado['tablero'][fila_actual][columna_actual])
-        
-        if estado['tablero'][fila_actual][columna_actual] == 0:
-            for i in range(fila_actual - 1, fila_actual + 2):
-                for j in range(columna_actual - 1, columna_actual + 2):
-                    if (i, j) != (fila_actual, columna_actual):
-                        cola.put((i, j))
-
 
 def todas_celdas_seguras_descubiertas(estadoTablero: EstadoJuego['tablero'], estadoTableroVisible: EstadoJuego['tablero_visible']) -> bool:
     for i in range(len(estadoTablero)):
