@@ -110,12 +110,13 @@ def marcar_celda(estado: EstadoJuego, fila: int, columna: int) -> None:
 def descubrir_celda(estado: EstadoJuego, fila: int, columna: int) -> None:
     if estado['juego_terminado'] == True:
         return
+    
     if estado['tablero'][fila][columna] == -1:
         estado['juego_terminado'] = True
         mostrar_todas_las_minas(estado)
         return
     
-    if todas_celdas_seguras_descubiertas(estado):
+    if todas_celdas_seguras_descubiertas(estado['tablero'], estado['tablero_visible']):
         estado['juego_terminado'] = True
 
 def caminos_descubiertos(tablero: list[list[int]], tablero_visible: list[list[str]], f: int, c: int) -> list[list[tuple[int, int]]]:
@@ -128,8 +129,45 @@ def caminos_descubiertos(tablero: list[list[int]], tablero_visible: list[list[st
     - Elementos contiguos deben ser adyacentes
     """
     caminos: list[list[tuple[int, int]]] = []
+    posicionesAdyacentesDiagonales = elementos_diagonales_adyacentes(tablero, f, c)
+
+    if tablero[f][c] == 0:
+        for posicion in posicionesAdyacentesDiagonales:
+            camino: list[tuple[int, int]] = []
+            posicionesAdyacentes = elementos_adyacentes(tablero, posicion)
+            
+            for posicionAdyacente in posicionesAdyacentes:
+                camino.append((f, c))
+                camino.append(posicionAdyacente)
+
+            adyacentesDiferentesACero = True
+            while adyacentesDiferentesACero:
+                adyacentesDiferentesACero = False    
+
+            # ESTO NO ESTÁ TERMINADO
+            # Pasos:
+            # En el medio, chequear que en la posición en el tablero, no haya una bandera. 
+            # Hacer una función (la llamo función 1), que dada una lista de tuplas de posiciones y un tablero, te devuelve una lista de tuplas de la manera: (tupla a1 de tupla original,..., tupla an de tupla original, posicion adyacente a tupla an)
+            # Hacer una función (la llamo función 2), que dada una lista de tuplas de dos elementos, devuelva true si para todas las tuplas, se cumple que tablero[tupla[1]][tupla[2]] # 0
+            # Si esa función es verdadera, significa que alrededor de mi posición no hay ceros, y devolvemos esa lista de tuplas como caminos
+            # Si hay alguna tupla cuyo ultimo elemento tenga como valor en el tablero un 0, saco ese elemento de la lista, y hago la función 1, con la lista de tuplas (Ej: con [(4, 4), (3,3)], y quedaría [[(4, 4), (3, 3), (2, 2)], [(4, 4), (3, 3), (2, 3)]...])
+            # Repito este proceso hasta que la función 2 me devuelva True.
     
+    else:
+        caminos.append([(f, c)])
+
     return caminos
+
+def elementos_diagonales_adyacentes(tablero: list[list[int]], fila: int, columna: int) -> list[tuple[int, int]]:
+    posicionesAdyacentes: list[tuple[int, int]] = elementos_adyacentes(tablero, (fila, columna))
+    posicionesAdyacentesCopia = posicionesAdyacentes.copy()
+
+    for f, c in posicionesAdyacentesCopia:
+        if fila == f or columna == c: posicionesAdyacentes.remove((f, c))
+
+    return posicionesAdyacentes
+
+print(caminos_descubiertos([[1, 2, 3], [4, 5, 6], [7, 8, 9]], None, 1, 1))
 
 def mostrar_todas_las_minas(estado: EstadoJuego) -> None:
     for i in range(estado['filas']):
@@ -140,8 +178,11 @@ def mostrar_todas_las_minas(estado: EstadoJuego) -> None:
 def todas_celdas_seguras_descubiertas(estadoTablero: EstadoJuego['tablero'], estadoTableroVisible: EstadoJuego['tablero_visible']) -> bool:
     for i in range(len(estadoTablero)):
         for j in range(len(estadoTablero[0])):
-            if estadoTablero[i][j] != -1 and estadoTableroVisible[i][j] == VACIO:
-                return False
+            if estadoTablero[i][j] != -1 and estadoTableroVisible[i][j] == str(estadoTablero[i][j]):
+                continue
+            if estadoTablero[i][j] == -1 and (estadoTableroVisible[i][j] == VACIO or estadoTableroVisible[i][j] == BANDERA):
+                continue
+            return False
     return True
         
 
