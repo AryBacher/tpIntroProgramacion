@@ -286,8 +286,97 @@ def guardar_estado(estado: EstadoJuego, ruta_directorio: str) -> None:
         if numFila != (len(estado['tablero_visible']) - 1):
             archivoTableroVisible.write("\n")
 
+# Ejercicio 10
 def cargar_estado(estado: EstadoJuego, ruta_directorio: str) -> bool:
-    return False
+    # Verificar que existan ambos archivos
+    if existe_archivo(ruta_directorio, "tablero.txt") == False or existe_archivo(ruta_directorio, "tablero_visible.txt") == False:
+        return False
+    
+    # Leer archivos
+    ruta_tablero = os.path.join(ruta_directorio, "tablero.txt")
+    ruta_tablero_visible = os.path.join(ruta_directorio, "tablero_visible.txt")
+    
+    with open(ruta_tablero, "r", encoding="utf-8") as archivo_tablero:
+        lineas_tablero: list[str] = archivo_tablero.read().strip().split("\n")
+    
+    with open(ruta_tablero_visible, "r", encoding="utf-8") as archivo_tablero_visible:
+        lineas_tablero_visible: list[str] = archivo_tablero_visible.read().strip().split("\n")
+    
+    
+    if len(lineas_tablero) == 0 or len(lineas_tablero_visible) == 0 or len(lineas_tablero) != len(lineas_tablero_visible) or estado['filas'] != len(lineas_tablero):
+        return False
+    
+    # Procesar columnas por linea
+    for i in range(len(lineas_tablero)):
+        columnas_linea: list[str] = lineas_tablero[i].split(",")
+        columnas_linea_visible: list[str] = lineas_tablero_visible[i].split(",")
+        if len(columnas_linea) != estado['columnas'] or len(columnas_linea_visible) != estado['columnas']:
+            return False
+    
+    # Validar formato y construir matrices
+    tablero_cargado: list[list[int]] = []
+    tablero_visible_cargado: list[list[str]] = []
+    contador_minas: int = 0
+    
+    for i in range(estado['filas']):
+        # Validar tablero.txt
+        valores_tablero: list[str] = lineas_tablero[i].split(",")
+        
+        fila_tablero: list[int] = []
+        for valor_str in valores_tablero:
+            valor: int = int(valor_str)
+            if valor == -1:
+                contador_minas += 1
+            elif valor < 0 or valor > 8:
+                return False
+            fila_tablero.append(valor)
+        
+        # Validar tablero_visible.txt
+        valores_visible: list[str] = lineas_tablero_visible[i].split(",")
+        
+        fila_visible: list[str] = []
+        for valor_str in valores_visible:
+            if valor_str == "*":
+                fila_visible.append(BANDERA)
+            elif valor_str == "?":
+                fila_visible.append(VACIO)
+            elif valor_str.isdigit() and 0 <= int(valor_str) <= 8:
+                fila_visible.append(valor_str)
+            else:
+                return False
+        
+        tablero_cargado.append(fila_tablero)
+        tablero_visible_cargado.append(fila_visible)
+    
+    # Validar que haya al menos una mina
+    if contador_minas == 0:
+        return False
+    
+    # Validar que los números en tablero correspondan a minas adyacentes
+    for i in range(estado['filas']):
+        for j in range(estado['columnas']):
+            if tablero_cargado[i][j] != -1:
+                minas_adyacentes_esperadas = cant_minas_adyacentes(tablero_cargado, (i, j))
+                if tablero_cargado[i][j] != minas_adyacentes_esperadas:
+                    return False
+    
+    # Validar correspondencia entre tablero y tablero_visible
+    for i in range(estado['filas']):
+        for j in range(estado['columnas']):
+            valor_visible = tablero_visible_cargado[i][j]
+            if valor_visible != BANDERA and valor_visible != VACIO and valor_visible.isdigit():
+                if int(valor_visible) != tablero_cargado[i][j]:
+                    return False
+    
+    # Si llegamos aquí, todo es válido - actualizar estado
+    estado['filas'] = len(lineas_tablero)
+    estado['columnas'] = len(lineas_tablero[0].split(","))
+    estado['minas'] = contador_minas
+    estado['juego_terminado'] = False
+    estado['tablero'] = tablero_cargado
+    estado['tablero_visible'] = tablero_visible_cargado
+    
+    return True
 
 tablero = [[1, 2, 3, 4, 5, 6, 7],
            [1, 0, 3, 4, 5, 6, 7],
