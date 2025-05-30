@@ -303,14 +303,16 @@ def cargar_estado(estado: EstadoJuego, ruta_directorio: str) -> bool:
         lineas_tablero_visible: list[str] = archivo_tablero_visible.read().strip().split("\n")
     
     
-    if len(lineas_tablero) == 0 or len(lineas_tablero_visible) == 0 or len(lineas_tablero) != len(lineas_tablero_visible) or estado['filas'] != len(lineas_tablero):
+    if len(lineas_tablero) == 0 or len(lineas_tablero_visible) == 0 or len(lineas_tablero) != len(lineas_tablero_visible):
         return False
     
     # Procesar columnas por linea
+    columnas_tablero: int = len(lineas_tablero[0].split(","))
+    columnas_tablero_visible: int = len(lineas_tablero_visible[0].split(","))
     for i in range(len(lineas_tablero)):
         columnas_linea: list[str] = lineas_tablero[i].split(",")
         columnas_linea_visible: list[str] = lineas_tablero_visible[i].split(",")
-        if len(columnas_linea) != estado['columnas'] or len(columnas_linea_visible) != estado['columnas']:
+        if len(columnas_linea) != columnas_tablero or len(columnas_linea_visible) != columnas_tablero_visible:
             return False
     
     # Validar formato y construir matrices
@@ -318,7 +320,7 @@ def cargar_estado(estado: EstadoJuego, ruta_directorio: str) -> bool:
     tablero_visible_cargado: list[list[str]] = []
     contador_minas: int = 0
     
-    for i in range(estado['filas']):
+    for i in range(len(lineas_tablero)):
         # Validar tablero.txt
         valores_tablero: list[str] = lineas_tablero[i].split(",")
         
@@ -353,16 +355,16 @@ def cargar_estado(estado: EstadoJuego, ruta_directorio: str) -> bool:
         return False
     
     # Validar que los números en tablero correspondan a minas adyacentes
-    for i in range(estado['filas']):
-        for j in range(estado['columnas']):
+    for i in range(len(lineas_tablero)):
+        for j in range(columnas_tablero):
             if tablero_cargado[i][j] != -1:
                 minas_adyacentes_esperadas = cant_minas_adyacentes(tablero_cargado, (i, j))
                 if tablero_cargado[i][j] != minas_adyacentes_esperadas:
                     return False
     
     # Validar correspondencia entre tablero y tablero_visible
-    for i in range(estado['filas']):
-        for j in range(estado['columnas']):
+    for i in range(len(lineas_tablero)):
+        for j in range(columnas_tablero):
             valor_visible = tablero_visible_cargado[i][j]
             if valor_visible != BANDERA and valor_visible != VACIO and valor_visible.isdigit():
                 if int(valor_visible) != tablero_cargado[i][j]:
@@ -422,5 +424,5 @@ estado = {'filas': 2,
           'tablero_visible': [[BANDERA,'1'],[' ',' ']],
           'juego_terminado': False}
 
-guardar_estado(estado, "archivos")
-print(estado)
+print(cargar_estado(estado, "archivos"))
+#print(estado)
