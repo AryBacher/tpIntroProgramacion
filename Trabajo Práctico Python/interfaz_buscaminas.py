@@ -117,6 +117,8 @@ class InterfazBuscaminas:
         descubrir_celda(self.estado_juego, fila, columna)
         self.actualizar_interfaz()
 
+        print("Juego Terminado", self.estado_juego['juego_terminado'])
+
         if self.estado_juego['juego_terminado']:
             if verificar_victoria(self.estado_juego):
                 messagebox.showinfo(
