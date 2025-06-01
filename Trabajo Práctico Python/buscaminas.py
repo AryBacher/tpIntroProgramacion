@@ -354,23 +354,23 @@ def guardar_estado(estado: EstadoJuego, ruta_directorio: str) -> None:
     archivoTableroVisible.close()
 
 # Ejercicio 10
-def contar_columnas(linea: str) -> int:
-    contador: int = 1
-    for caracter in linea:
-        if caracter == ',':
-            contador += 1
-    return contador
-
-def valores_linea(linea: str) -> list[str]:
-    valores: list[str] = []
-    for caracter in linea:
-        if caracter != ',' and caracter != '\n':
-            valores.append(caracter)
-    print(valores)
-    return valores
-
-
 def cargar_estado(estado: EstadoJuego, ruta_directorio: str) -> bool:
+    """A partir de los valores guardados mediante la función guardar_estado, si se
+    cumplen ciertas condiciones, volvemos a cargar esos datos dentro de estado. En caso de que
+    no se cumplan esas condiciones, devolvemos False. Si se cumplen, devolvemos True.
+    Condiciones:
+    - En ruta_directorio no existe alguno de los archivos tablero.txt o tablero visible.txt
+    - La cantidad de líneas de cada archivo guardado es igual a estado['filas'], considerando
+    una linea cuando la cantidad de caracteres sea mayor a 0.
+    - La cantidad de comas (',') por línea es igual a estado['columnas'] - 1.
+    - En tablero.txt debe haber al menos un -1, y los valores deben ser -1 ó 
+    corresponder a la cantidad de -1 que hay en las posiciones adyacentes, 
+    considerando al contenido del archivo como una matriz
+    - En tablero visible.txt, solo puede haber números (entre [0; 8]), '*'
+    (representa BANDERA) y '?' (representa VACIO), ademas de comas (',') para separar valores. 
+    En caso de haber núumeros, estos deben corresponder a los valores en la misma posición
+    en el archivo tablero.txt (la iésima línea corresponde a la iésima fila de tablero)."""
+    
     # Verificamos que existan ambos archivos
     if existe_archivo(ruta_directorio, "tablero.txt") == False or existe_archivo(ruta_directorio, "tablero_visible.txt") == False:
         return False
@@ -461,6 +461,30 @@ def cargar_estado(estado: EstadoJuego, ruta_directorio: str) -> bool:
     
     return True
 
+def contar_columnas(linea: str) -> int:
+    """Contamos cuantas columnas hay en una linea, contando cuantas comas hay"""
+    contador: int = 1
+    for caracter in linea:
+        if caracter == ',':
+            contador += 1
+    return contador
+
+def valores_linea(linea: str) -> list[str]:
+    """Devolvemos todos los valores de una linea en una lista, separando a los caracteres 
+    donde hay una coma, o un salto de linea siendo cada valor de la lista, aquellos que no 
+    son comas o saltos de linea (Salvo el caso particular que el valor entre dos lineas
+    sea -1, ahí en vez de tomar el "-" y el "1", tomamos "-1"). """
+    valores: list[str] = []
+    menos: bool = False
+    for caracter in linea:
+        if caracter != ',' and caracter != '\n':
+            if caracter == '-': menos = True
+            elif menos: 
+                valores.append('-' + caracter)
+                menos = False
+            else: valores.append(caracter)
+    return valores
+
 # tablero = [[1, 2, 3, 4, 5, 6, 7],
 #            [1, 0, 3, 4, 5, 6, 7],
 #            [1, 2, 0, 1, 2, 6, 7],
@@ -484,11 +508,12 @@ def cargar_estado(estado: EstadoJuego, ruta_directorio: str) -> bool:
 #                        'tablero_visible': tablero_visible,
 #                        'juego_terminado': False}
 
-estado = {'filas': 2, 
-           'columnas': 2, 
-           'minas': 1, 
-           'tablero': [[-1,1], [ 1,1]], 
-           'tablero_visible': [[BANDERA,'1'],[' ',' ']],
-           'juego_terminado': False
-           }
-print(cargar_estado(estado, "Trabajo Práctico Python/archivos"))
+# estado = {'filas': 2, 
+#            'columnas': 2, 
+#            'minas': 1, 
+#            'tablero': [[-1,1], [ 1,1]], 
+#            'tablero_visible': [[BANDERA,'1'],[' ',' ']],
+#            'juego_terminado': False
+#            }
+
+# print(cargar_estado(estado, ""))
