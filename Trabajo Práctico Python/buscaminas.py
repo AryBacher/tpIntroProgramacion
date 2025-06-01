@@ -354,6 +354,22 @@ def guardar_estado(estado: EstadoJuego, ruta_directorio: str) -> None:
     archivoTableroVisible.close()
 
 # Ejercicio 10
+def contar_columnas(linea: str) -> int:
+    contador: int = 1
+    for caracter in linea:
+        if caracter == ',':
+            contador += 1
+    return contador
+
+def valores_linea(linea: str) -> list[str]:
+    valores: list[str] = []
+    for caracter in linea:
+        if caracter != ',' and caracter != '\n':
+            valores.append(caracter)
+    print(valores)
+    return valores
+
+
 def cargar_estado(estado: EstadoJuego, ruta_directorio: str) -> bool:
     # Verificamos que existan ambos archivos
     if existe_archivo(ruta_directorio, "tablero.txt") == False or existe_archivo(ruta_directorio, "tablero_visible.txt") == False:
@@ -364,10 +380,10 @@ def cargar_estado(estado: EstadoJuego, ruta_directorio: str) -> bool:
     ruta_tablero_visible = os.path.join(ruta_directorio, "tablero_visible.txt")
     
     archivo_tablero: TextIO = open(ruta_tablero, "r", encoding="utf-8")
-    lineas_tablero: list[str] = archivo_tablero.read().strip().split("\n")
+    lineas_tablero: list[str] = archivo_tablero.readlines()
     
     archivo_tablero_visible: TextIO = open(ruta_tablero_visible, "r", encoding="utf-8")
-    lineas_tablero_visible: list[str] = archivo_tablero_visible.read().strip().split("\n")
+    lineas_tablero_visible: list[str] = archivo_tablero_visible.readlines()
     
     archivo_tablero.close()
     archivo_tablero_visible.close()
@@ -375,23 +391,20 @@ def cargar_estado(estado: EstadoJuego, ruta_directorio: str) -> bool:
     if len(lineas_tablero) == 0 or len(lineas_tablero_visible) == 0 or len(lineas_tablero) != len(lineas_tablero_visible):
         return False
     
-    # Procesar columnas por linea
-    columnas_tablero: int = len(lineas_tablero[0].split(","))
-    columnas_tablero_visible: int = len(lineas_tablero_visible[0].split(","))
+    cant_columnas_tablero: int = contar_columnas(lineas_tablero[0])
+    cant_columnas_tablero_visible: int = contar_columnas(lineas_tablero_visible[0])
     for i in range(len(lineas_tablero)):
-        columnas_linea: list[str] = lineas_tablero[i].split(",")
-        columnas_linea_visible: list[str] = lineas_tablero_visible[i].split(",")
-        if len(columnas_linea) != columnas_tablero or len(columnas_linea_visible) != columnas_tablero_visible:
+        cant_columnas_linea: int = contar_columnas(lineas_tablero[i])
+        cant_columnas_linea_visible: int = contar_columnas(lineas_tablero_visible[i])
+        if cant_columnas_linea != cant_columnas_tablero or cant_columnas_linea_visible != cant_columnas_tablero_visible:
             return False
     
-    # Validar formato y construir matrices
     tablero_cargado: list[list[int]] = []
     tablero_visible_cargado: list[list[str]] = []
     contador_minas: int = 0
     
     for i in range(len(lineas_tablero)):
-        # Validar tablero.txt
-        valores_tablero: list[str] = lineas_tablero[i].split(",")
+        valores_tablero: list[str] = valores_linea(lineas_tablero[i])
         
         fila_tablero: list[int] = []
         for valor_str in valores_tablero:
@@ -402,8 +415,7 @@ def cargar_estado(estado: EstadoJuego, ruta_directorio: str) -> bool:
                 return False
             fila_tablero.append(valor)
         
-        # Validar tablero_visible.txt
-        valores_visible: list[str] = lineas_tablero_visible[i].split(",")
+        valores_visible: list[str] = valores_linea(lineas_tablero_visible[i])
         
         fila_visible: list[str] = []
         for valor_str in valores_visible:
@@ -411,7 +423,7 @@ def cargar_estado(estado: EstadoJuego, ruta_directorio: str) -> bool:
                 fila_visible.append(BANDERA)
             elif valor_str == "?":
                 fila_visible.append(VACIO)
-            elif valor_str.isdigit() and 0 <= int(valor_str) <= 8:
+            elif 0 <= int(valor_str) <= 8:
                 fila_visible.append(valor_str)
             else:
                 return False
@@ -419,29 +431,29 @@ def cargar_estado(estado: EstadoJuego, ruta_directorio: str) -> bool:
         tablero_cargado.append(fila_tablero)
         tablero_visible_cargado.append(fila_visible)
     
-    # Validar que haya al menos una mina
+    # Validamos que haya al menos una mina
     if contador_minas == 0:
         return False
     
-    # Validar que los números en tablero correspondan a minas adyacentes
+    # Validamos que los números en tablero correspondan a minas adyacentes
     for i in range(len(lineas_tablero)):
-        for j in range(columnas_tablero):
+        for j in range(cant_columnas_tablero):
             if tablero_cargado[i][j] != -1:
                 minas_adyacentes_esperadas = cant_minas_adyacentes(tablero_cargado, (i, j))
                 if tablero_cargado[i][j] != minas_adyacentes_esperadas:
                     return False
     
-    # Validar correspondencia entre tablero y tablero_visible
+    # Validamos que los valores visibles en tablero_visible correspondan a los valores en tablero
     for i in range(len(lineas_tablero)):
-        for j in range(columnas_tablero):
+        for j in range(cant_columnas_tablero):
             valor_visible = tablero_visible_cargado[i][j]
-            if valor_visible != BANDERA and valor_visible != VACIO and valor_visible.isdigit():
+            if valor_visible != BANDERA and valor_visible != VACIO and int(valor_visible) >= 0 and int(valor_visible) <= 8:
                 if int(valor_visible) != tablero_cargado[i][j]:
                     return False
     
-    # Si llegamos aquí, todo es válido - actualizar estado
+    # Actualizamos el estado y devolvemos True
     estado['filas'] = len(lineas_tablero)
-    estado['columnas'] = len(lineas_tablero[0].split(","))
+    estado['columnas'] = cant_columnas_tablero
     estado['minas'] = contador_minas
     estado['juego_terminado'] = False
     estado['tablero'] = tablero_cargado
@@ -472,9 +484,11 @@ def cargar_estado(estado: EstadoJuego, ruta_directorio: str) -> bool:
 #                        'tablero_visible': tablero_visible,
 #                        'juego_terminado': False}
 
-# estado = {'filas': 2, 
-#           'columnas': 2, 
-#           'minas': 1, 
-#           'tablero': [[-1,1], [ 1,1]], 
-#           'tablero_visible': [[BANDERA,'1'],[' ',' ']],
-#           'juego_terminado': False}
+estado = {'filas': 2, 
+           'columnas': 2, 
+           'minas': 1, 
+           'tablero': [[-1,1], [ 1,1]], 
+           'tablero_visible': [[BANDERA,'1'],[' ',' ']],
+           'juego_terminado': False
+           }
+print(cargar_estado(estado, "Trabajo Práctico Python/archivos"))
