@@ -1,7 +1,7 @@
 import unittest
-from buscaminas import (crear_juego, descubrir_celda, marcar_celda, obtener_estado_tablero_visible,
-                               reiniciar_juego, colocar_minas, calcular_numeros, verificar_victoria, guardar_estado, cargar_estado, BOMBA, BANDERA, VACIO, EstadoJuego)
-
+from buscaminas import (existe_archivo, crear_juego, descubrir_celda, marcar_celda, obtener_estado_tablero_visible,
+                               reiniciar_juego, colocar_minas, calcular_numeros, verificar_victoria, guardar_estado, cargar_estado, contar_columnas, BOMBA, BANDERA, VACIO, EstadoJuego)
+from typing import TextIO
 
 '''
 Ayudamemoria: entre los métodos para testear están los siguientes:
@@ -227,6 +227,71 @@ class marcar_celdaTest(unittest.TestCase):
         ])
         self.assertFalse(estado['juego_terminado'])
         # Testeamos que haya una mina en el tablero
+        self.assertEqual(cant_minas_en_tablero(estado['tablero']), 1)
+
+    def test_bandera_a_vacio(self):
+        estado: EstadoJuego = {
+            'filas': 2,
+            'columnas': 2,
+            'minas': 1,
+            'tablero': [
+                [1, 1],
+                [1, -1]
+            ],
+            'tablero_visible': [
+                [BANDERA, VACIO],
+                [VACIO, BANDERA]
+            ],
+            'juego_terminado': False
+        }
+        marcar_celda(estado, 0, 0)
+        # Testeamos que sólo la celda marcada sea visible
+        self.assertEqual(estado['tablero_visible'], [
+            [VACIO, VACIO],
+            [VACIO, BANDERA]
+        ])
+        # Testeamos que el resto no se modificó
+        self.assertEqual(estado['filas'], 2)
+        self.assertEqual(estado['columnas'], 2)
+        self.assertEqual(estado['minas'], 1)
+        self.assertEqual(estado['tablero'], [
+            [1, 1],
+            [1, -1]
+        ])
+        self.assertFalse(estado['juego_terminado'])
+        self.assertEqual(cant_minas_en_tablero(estado['tablero']), 1)
+
+    def test_ni_bandera_ni_vacio(self):
+        estado: EstadoJuego = {
+            'filas': 2,
+            'columnas': 2,
+            'minas': 1,
+            'tablero': [
+                [1, -1],
+                [1, 1]
+            ],
+            'tablero_visible': [
+                [VACIO, VACIO],
+                [VACIO, 1]
+            ],
+            'juego_terminado': False
+        }
+        marcar_celda(estado, 1, 1)
+        # Testeamos que no se cambio nada pues no se hizo click ni en una casilla vacía
+        # ni en una bandera
+        self.assertEqual(estado['tablero_visible'], [
+            [VACIO, VACIO],
+            [VACIO, 1]
+        ])
+        # Testeamos que el resto no se modificó
+        self.assertEqual(estado['filas'], 2)
+        self.assertEqual(estado['columnas'], 2)
+        self.assertEqual(estado['minas'], 1)
+        self.assertEqual(estado['tablero'], [
+            [1, -1],
+            [1, 1]
+        ])
+        self.assertFalse(estado['juego_terminado'])
         self.assertEqual(cant_minas_en_tablero(estado['tablero']), 1)
 
 
