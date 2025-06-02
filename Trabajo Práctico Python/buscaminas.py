@@ -39,7 +39,7 @@ def colocar_minas(filas:int, columnas: int, minas:int) -> list[list[int]]:
     return matriz
 
 def posiciones_matriz(matriz: list[list[int]]) -> list[tuple[int, int]]:
-    """Toma una matriz y devuelve todas sus posiciones de la manera (fila columna)
+    """Toma una matriz y devuelve todas sus posiciones de la manera (fila, columna)
     dentro de una lista"""
     posicionesMatriz: list[tuple[int, int]] = []
     for numFila in range(len(matriz)):
@@ -51,7 +51,7 @@ def posiciones_matriz(matriz: list[list[int]]) -> list[tuple[int, int]]:
 # Ejercicio 2
 def calcular_numeros(tablero: list[list[int]]) -> None:
     """A partir de un tablero, calcula la cantidad de minas adyacentes
-    de todas las posiciones de ese tablero, que no contienen una mina"""
+    de todas las posiciones de ese tablero que no contienen una mina"""
     for num_fila in range(len(tablero)):
         for num_columna in range(len(tablero[0])):
             if tablero[num_fila][num_columna] == 0: 
@@ -157,10 +157,15 @@ def descubrir_celda(estado: EstadoJuego, fila: int, columna: int) -> None:
         mostrar_todas_las_minas(estado)
         return
     
-    caminosDescubiertos: list[list[tuple[int, int]]] = caminos_descubiertos(estado['tablero'], estado['tablero_visible'], fila, columna)
+    caminosYCeros: tuple[list[list[tuple[int, int]]], list[tuple[int, int]]] = caminos_descubiertos(estado['tablero'], estado['tablero_visible'], fila, columna)
+    caminosDescubiertos: list[list[tuple[int, int]]] = caminosYCeros[0]
+    ceros_visitados: list[tuple[int, int]] = caminosYCeros[1]
 
     for camino in caminosDescubiertos:
         for fila, columna in camino:
+            estado['tablero_visible'][fila][columna] = str(estado['tablero'][fila][columna])
+
+    for fila, columna in ceros_visitados:
             estado['tablero_visible'][fila][columna] = str(estado['tablero'][fila][columna])
 
     if todas_celdas_seguras_descubiertas(estado['tablero'], estado['tablero_visible']):
@@ -196,7 +201,7 @@ def todas_celdas_seguras_descubiertas(estadoTablero: list[list[int]], estadoTabl
             return False
     return True    
 
-def caminos_descubiertos(tablero: list[list[int]], tablero_visible: list[list[str]], f: int, c: int) -> list[list[tuple[int, int]]]:
+def caminos_descubiertos(tablero: list[list[int]], tablero_visible: list[list[str]], f: int, c: int) -> tuple[list[list[tuple[int, int]]], list[tuple[int, int]]]:
     """
     Encuentra todos los caminos posibles desde la posición (f,c) que cumplan las condiciones:
     - Secuencias de posiciones válidas sin repetidos
@@ -206,6 +211,7 @@ def caminos_descubiertos(tablero: list[list[int]], tablero_visible: list[list[st
     - Elementos contiguos deben ser adyacentes
     """
     caminos: list[list[tuple[int, int]]] = []
+    ceros_visitados: list[tuple[int, int]] = []
 
     if tablero[f][c] == 0:
         # Primero obtenemos todos los caminos adyacentes a la posición a analizar.
@@ -214,29 +220,32 @@ def caminos_descubiertos(tablero: list[list[int]], tablero_visible: list[list[st
         # Luego, observamos cuantos de esos caminos adyacentes, termina con un 0,
         # esto significaría que, por ejemplo, la posición (1, 1), en estado['tablero'] = 0
 
-        caminosAdyacentes: list[list[tuple[int, int]]] = caminos_adyacentes([(f, c)], tablero, tablero_visible)
-        listas_no_terminadas_en_cero: list[list[tuple[int, int]]] = ultimo_elemento_cero(caminosAdyacentes, tablero)
+        caminosAdyacentes: list[list[tuple[int, int]]] = caminos_adyacentes([(f, c)], tablero, tablero_visible, [])
+        listas_terminadas_en_cero: list[list[tuple[int, int]]] = ultimo_elemento_cero(caminosAdyacentes, tablero)
+        ceros_visitados = ultimo_elemento_de_todas_listas(listas_terminadas_en_cero)
 
         # Si alguno de los caminos "termina" en 0, entramos al siguiente while y repetimos
         # este proceso la cantidad de veces necesaria hasta que ningún camino "termine" en 0
 
-        while len(listas_no_terminadas_en_cero) != 0:
+        while len(listas_terminadas_en_cero) != 0:
             nuevosCaminosAdyacentes: list[list[tuple[int, int]]] = []
-            for lista in listas_no_terminadas_en_cero:
+            for lista in listas_terminadas_en_cero:
                 caminosAdyacentes.remove(lista)
-                nuevosCaminosAdyacentes += caminos_adyacentes(lista, tablero, tablero_visible)
+                nuevosCaminosAdyacentes += caminos_adyacentes(lista, tablero, tablero_visible, ceros_visitados)
 
-            listas_no_terminadas_en_cero = ultimo_elemento_cero(nuevosCaminosAdyacentes, tablero)
+            listas_terminadas_en_cero = ultimo_elemento_cero(nuevosCaminosAdyacentes, tablero)
+            ceros_visitados_iteracion = ultimo_elemento_de_todas_listas(listas_terminadas_en_cero)
             caminosAdyacentes += nuevosCaminosAdyacentes
+            ceros_visitados += ceros_visitados_iteracion
         
         caminos = caminosAdyacentes.copy()
     
     else:
         caminos.append([(f, c)])
 
-    return caminos
+    return (caminos, ceros_visitados)
 
-def caminos_adyacentes(listaDePosiciones: list[tuple[int, int]], tablero: list[list[int]], tablero_visible: list[list[int]]) -> list[tuple[int, int]]:
+def caminos_adyacentes(listaDePosiciones: list[tuple[int, int]], tablero: list[list[int]], tablero_visible: list[list[int]], ceros_visitados: list[tuple[int, int]]) -> list[tuple[int, int]]:
     """Obtenemos todos los caminos adyacentes a partir de una lista de posiciones.
     
     Por ejemplo, si listaDePosiciones = [(1, 1)], los caminos obtenidos serán de la forma:
@@ -246,12 +255,12 @@ def caminos_adyacentes(listaDePosiciones: list[tuple[int, int]], tablero: list[l
     [[(2, 2), (1, 1), (0, 0)], [(2, 2), (1, 1), (0, 1)], [(2, 2), (1, 1), (0, 2)] ...]"""
     
     listaPosicionesAdyacentes: list[list[tuple[int, int]]] = []
-    ultimaPosicion = listaDePosiciones[len(listaDePosiciones) - 1]
-    posicionesAdyacentes = elementos_adyacentes(tablero, ultimaPosicion)
+    ultimaPosicion: tuple[int, int] = listaDePosiciones[len(listaDePosiciones) - 1]
+    posicionesAdyacentes: list[tuple[int, int]] = elementos_adyacentes(tablero, ultimaPosicion)
 
     for posicionAdyacente in posicionesAdyacentes:
         if tablero_visible[posicionAdyacente[0]][posicionAdyacente[1]] != BANDERA:
-            if posicionAdyacente not in listaDePosiciones:
+            if posicionAdyacente not in listaDePosiciones and posicionAdyacente not in ceros_visitados:
                 listaPosicionesAdyacentes.append(listaDePosiciones + [posicionAdyacente])
 
     return listaPosicionesAdyacentes
@@ -274,10 +283,10 @@ def ultimo_elemento_cero(listaPosiciones: list[list[tuple[int, int]]], tablero: 
 
     return listas_con_cero
 
-def ultimo_elemento_de_todas_listas(listas: list[list]) -> list:
+def ultimo_elemento_de_todas_listas(listas: list[list[tuple[int, int]]]) -> list:
     """Para hacer la función de arriba más fácil, obtenemos todos los
     últimos elementos de todas las listas dentro de una lista de listas."""
-    ultimos_elementos: list = []
+    ultimos_elementos: list[tuple[int, int]] = []
 
     for lista in listas:
         ultimos_elementos.append(lista[len(lista) - 1])
@@ -293,7 +302,7 @@ def verificar_victoria(estado: EstadoJuego) -> bool:
 # Ejercicio 8
 def reiniciar_juego(estado: EstadoJuego) -> None:
     """Cuando el usuario oprime el botón de reiniciar, se inicializan nuevamente todos los
-    valores, así como en la función crear_juego. """
+    valores de estado, así como sucedía en la función crear_juego. """
     estado['juego_terminado'] = False
     estado['tablero_visible'] = []
     for _ in range(estado['filas']):
@@ -301,17 +310,32 @@ def reiniciar_juego(estado: EstadoJuego) -> None:
         for _ in range(estado['columnas']):
             fila.append(VACIO)
         estado['tablero_visible'].append(fila)
+    # Acá por las dudas chequeamos que el tablero sea diferente
+    estado_tablero_previo: list[list[int]] = estado['tablero'].copy()
     estado['tablero'] = colocar_minas(estado['filas'], estado['columnas'], estado['minas'])
     calcular_numeros(estado['tablero'])
+
+    # Hasta que el tablero no cambie, seguimos iterando en este while. En cierto momento,
+    # estadísticamente, debería tocar un tablero diferente.
+    
+    # Aclaración: Es claro que el único caso en el que esto nunca pasaría sería si
+    # la cantidad de filas, columnas y minas fuera 1, pero por el requiere de las funciones
+    # crear_juego, colocar_minas y calcular_numeros, esto no sería posible. 
+    # Y para que se corra la función reiniciar_juego, antes se tienen que correr esas tres
+    # funciones, por lo que el while siempre será válido.
+    
+    while estado_tablero_previo == estado['tablero']:
+        estado['tablero'] = colocar_minas(estado['filas'], estado['columnas'], estado['minas'])
+        calcular_numeros(estado['tablero'])
 
 # Ejercicio 9
 def guardar_estado(estado: EstadoJuego, ruta_directorio: str) -> None:
     """Guardamos en dos archivos externos el estado del juego actual:
     
     En tablero.txt guardamos la información no visible para el usuario separada
-    por comas y por filas, por ejemplo si el tablero era [[1, 1], [1, 0]] guardamos:
+    por comas y por filas, por ejemplo si el tablero era [[1, 1], [1, -1]] guardamos:
     1,1
-    1,0
+    1,-1
     
     En tablero_visible.txt guardamos la información visible para el usuario separada
     por comas y por filas, con la particularidad que en donde había un casillero vacío,
@@ -320,8 +344,8 @@ def guardar_estado(estado: EstadoJuego, ruta_directorio: str) -> None:
     ?,1
     1,*
     """
-    rutaArchivoTablero = os.path.join(ruta_directorio, "tablero.txt")
-    rutaArchivoTableroVisible = os.path.join(ruta_directorio, "tablero_visible.txt")
+    rutaArchivoTablero: str = os.path.join(ruta_directorio, "tablero.txt")
+    rutaArchivoTableroVisible: str = os.path.join(ruta_directorio, "tablero_visible.txt")
 
     archivoTablero: TextIO = open(rutaArchivoTablero, "w", encoding="utf-8")
     archivoTableroVisible: TextIO = open(rutaArchivoTableroVisible, "w", encoding="utf-8")
@@ -375,9 +399,9 @@ def cargar_estado(estado: EstadoJuego, ruta_directorio: str) -> bool:
     if existe_archivo(ruta_directorio, "tablero.txt") == False or existe_archivo(ruta_directorio, "tablero_visible.txt") == False:
         return False
     
-    # Leemos los archivos
-    ruta_tablero = os.path.join(ruta_directorio, "tablero.txt")
-    ruta_tablero_visible = os.path.join(ruta_directorio, "tablero_visible.txt")
+    # Acá leemos los archivos y después los cerramos porque no los necesitamos más
+    ruta_tablero: str = os.path.join(ruta_directorio, "tablero.txt")
+    ruta_tablero_visible: str = os.path.join(ruta_directorio, "tablero_visible.txt")
     
     archivo_tablero: TextIO = open(ruta_tablero, "r", encoding="utf-8")
     lineas_tablero: list[str] = archivo_tablero.readlines()
@@ -387,22 +411,29 @@ def cargar_estado(estado: EstadoJuego, ruta_directorio: str) -> bool:
     
     archivo_tablero.close()
     archivo_tablero_visible.close()
-    
-    if len(lineas_tablero) == 0 or len(lineas_tablero_visible) == 0 or len(lineas_tablero) != len(lineas_tablero_visible):
+
+    cantidad_lineas_tablero = contar_lineas(lineas_tablero)
+    cantidad_lineas_tablero_visible = contar_lineas(lineas_tablero_visible)
+
+    # Vemos que se la cantidad de filas sea la correcta 
+    if cantidad_lineas_tablero != estado['filas'] or cantidad_lineas_tablero_visible != estado['filas']:
         return False
     
-    cant_columnas_tablero: int = contar_columnas(lineas_tablero[0])
-    cant_columnas_tablero_visible: int = contar_columnas(lineas_tablero_visible[0])
+    # Vemos que la cantidad de comas de cada linea es correcta, contando la cantidad de columnas
     for i in range(len(lineas_tablero)):
         cant_columnas_linea: int = contar_columnas(lineas_tablero[i])
         cant_columnas_linea_visible: int = contar_columnas(lineas_tablero_visible[i])
-        if cant_columnas_linea != cant_columnas_tablero or cant_columnas_linea_visible != cant_columnas_tablero_visible:
+        if cant_columnas_linea != estado['columnas'] or cant_columnas_linea_visible != estado['columnas']:
             return False
     
     tablero_cargado: list[list[int]] = []
     tablero_visible_cargado: list[list[str]] = []
     contador_minas: int = 0
     
+    # Acá reconstruimos el tablero y el tablero_visible
+    # También chequeamos que los valores de tablero.txt sean un número entre -1 y 8
+    # Además, corroboramos que no haya valores inválidos en tablero_visible.txt y que solo
+    # puedan aparecer números entre 0 y 8, y los caracteres '*' y '?' 
     for i in range(len(lineas_tablero)):
         valores_tablero: list[str] = valores_linea(lineas_tablero[i])
         
@@ -423,19 +454,36 @@ def cargar_estado(estado: EstadoJuego, ruta_directorio: str) -> bool:
                 fila_visible.append(BANDERA)
             elif valor_str == "?":
                 fila_visible.append(VACIO)
-            elif 0 <= int(valor_str) <= 8:
+            elif '0' <= valor_str <= '8':
                 fila_visible.append(valor_str)
             else:
                 return False
         
+        # Por las dudas chequeamos que la cantidad de columnas sea igual a la cantidad 
+        # de elementos que vamos a añadir a las listas. Si esto pasara, tal vez podría 
+        # romperse algo del código que continúa.
+        # Por ejemplo podría ser que una linea (inválida) de tablero_txt sea 38,1
+        # y luego la cantidad de columnas sería 2 pero fila_tablero sería igual a 
+        # [3,8,1] y len(fila_tablero) = 3 # 2.
+        
+        cant_columnas_linea: int = contar_columnas(lineas_tablero[i])
+        if len(fila_tablero) != cant_columnas_linea or len(fila_visible) != cant_columnas_linea:
+            return False
+        
         tablero_cargado.append(fila_tablero)
         tablero_visible_cargado.append(fila_visible)
     
-    # Validamos que haya al menos una mina
+    # Nos fijamos que haya al menos una mina, y de lo contrario devolvemos False
     if contador_minas == 0:
         return False
     
-    # Validamos que los números en tablero correspondan a minas adyacentes
+    cant_columnas_tablero: int = contar_columnas(lineas_tablero[0])
+    
+    # Validamos que los números en tablero correspondan a minas adyacentes, es decir,
+    # que se cumpla el asegura que dice que los valores de tablero.txt deben ser o bien 
+    # -1, o la cantidad de minas que hay en las posiciones adyacentes
+    # Observación: Antes fue chequeado que cada valor debe ser, o bien, un -1, o un número 
+    # entre 0 y 8.
     for i in range(len(lineas_tablero)):
         for j in range(cant_columnas_tablero):
             if tablero_cargado[i][j] != -1:
@@ -443,7 +491,8 @@ def cargar_estado(estado: EstadoJuego, ruta_directorio: str) -> bool:
                 if tablero_cargado[i][j] != minas_adyacentes_esperadas:
                     return False
     
-    # Validamos que los valores visibles en tablero_visible correspondan a los valores en tablero
+    # Y finalmente validamos que los números de tablero_visible.txt 
+    # correspondan a los valores en tablero.txt
     for i in range(len(lineas_tablero)):
         for j in range(cant_columnas_tablero):
             valor_visible = tablero_visible_cargado[i][j]
@@ -451,7 +500,7 @@ def cargar_estado(estado: EstadoJuego, ruta_directorio: str) -> bool:
                 if int(valor_visible) != tablero_cargado[i][j]:
                     return False
     
-    # Actualizamos el estado y devolvemos True
+    # Actualizamos estado y devolvemos True (si es que llegamos hasta acá)
     estado['filas'] = len(lineas_tablero)
     estado['columnas'] = cant_columnas_tablero
     estado['minas'] = contador_minas
@@ -475,45 +524,57 @@ def valores_linea(linea: str) -> list[str]:
     son comas o saltos de linea (Salvo el caso particular que el valor entre dos lineas
     sea -1, ahí en vez de tomar el "-" y el "1", tomamos "-1"). """
     valores: list[str] = []
-    menos: bool = False
+    hayUnMenos: bool = False
     for caracter in linea:
         if caracter != ',' and caracter != '\n':
-            if caracter == '-': menos = True
-            elif menos: 
+            if caracter == '-': hayUnMenos = True
+            elif hayUnMenos: 
                 valores.append('-' + caracter)
-                menos = False
+                hayUnMenos = False
             else: valores.append(caracter)
     return valores
 
-# tablero = [[1, 2, 3, 4, 5, 6, 7],
-#            [1, 0, 3, 4, 5, 6, 7],
-#            [1, 2, 0, 1, 2, 6, 7],
-#            [1, 2, 3, 0, 5, 6, 7],
-#            [1, 2, 1, 2, 0, 6, 7],
-#            [1, 2, 3, 4, 5, 6, 7],
-#            [1, 2, 3, 4, 5, 6, 7]]
+def contar_lineas(texto: list[str]) -> int:
+    """Devolvemos cuántas lineas tiene un texto. El caso que queremos evitar
+    es cuando una linea es solamente un \n, ese es el único caso en que podría suceder
+    que exista una linea, pero cuya cantidad de caracteres no sea 0, pues 
+    un salto de linea no es un caracter"""
+    cant_lineas: int = 0
+    for linea in texto:
+        contador: int = 0
+        for caracter in linea:
+            if caracter != '\n':
+                contador += 1
+        
+        if contador > 0: 
+            cant_lineas += 1
 
-# tablero_visible = [[' ', ' ', ' ', ' ', ' ', ' ', ' '], 
-#                    [' ', ' ', ' ', ' ', ' ', ' ', ' '], 
-#                    [' ', ' ', ' ', ' ', ' ', ' ', ' '], 
-#                    [' ', ' ', ' ', ' ', ' ', ' ', ' '], 
-#                    [' ', ' ', ' ', ' ', ' ', ' ', ' '], 
-#                    [' ', ' ', ' ', ' ', ' ', ' ', ' '], 
-#                    [' ', ' ', ' ', ' ', ' ', ' ', ' ']]
+    return cant_lineas
 
-# estado: EstadoJuego = {'filas': 7,
-#                        'columnas': 7,
-#                        'minas': 3,
+# tablero = [
+#     [0, 0, 0, 0, 0, 0, 1, -1],
+#     [0, 0, 0, 0, 1, 2, 3, 2],
+#     [0, 0, 0, 0, 1, -1, -1, 2],
+#     [0, 0, 0, 0, 1, 2, 4, -1],
+#     [0, 1, 1, 1, 0, 1, 3, -1],
+#     [0, 1, -1, 1, 0, 1, -1, 2],
+#     [0, 2, 2, 2, 0, 2, 3, 3],
+#     [0, 1, -1, 1, 0, 1, -1, -1]]
+
+# tablero_visible = [[' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '], 
+#                    [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '], 
+#                    [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '], 
+#                    [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '], 
+#                    [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '], 
+#                    [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+#                    [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],  
+#                    [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ']]
+
+# estado: EstadoJuego = {'filas': 8,
+#                        'columnas': 8,
+#                        'minas': 10,
 #                        'tablero': tablero,
 #                        'tablero_visible': tablero_visible,
 #                        'juego_terminado': False}
 
-# estado = {'filas': 2, 
-#            'columnas': 2, 
-#            'minas': 1, 
-#            'tablero': [[-1,1], [ 1,1]], 
-#            'tablero_visible': [[BANDERA,'1'],[' ',' ']],
-#            'juego_terminado': False
-#            }
-
-# print(cargar_estado(estado, ""))
+# descubrir_celda(estado, 3, 3)
