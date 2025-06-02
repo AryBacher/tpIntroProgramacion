@@ -140,7 +140,23 @@ class crear_juegoTest(unittest.TestCase):
         self.assertFalse(estado['juego_terminado'])
         # Testeamos que haya una mina en el tablero
         self.assertEqual(cant_minas_en_tablero(estado['tablero']), minas)
-    
+
+    def test_mas_dimension_mas_minas(self):
+        filas = 3
+        columnas = 3
+        minas = 
+        estado: EstadoJuego = crear_juego(filas, columnas, minas)
+        self.assertTrue(dimension_correcta(estado['tablero'], filas, columnas))
+        self.assertTrue(dimension_correcta(estado['tablero_visible'], filas, columnas))
+        for fila in estado['tablero_visible']:
+            for celda in fila:
+                self.assertEqual(celda, VACIO)
+        self.assertEqual(estado['filas'], filas)
+        self.assertEqual(estado['columnas'], columnas)
+        self.assertEqual(estado['minas'], minas)
+        self.assertFalse(estado['juego_terminado'])
+        self.assertEqual(cant_minas_en_tablero(estado['tablero']), minas)
+
 
 class marcar_celdaTest(unittest.TestCase):
     def test_ejemplo(self):
@@ -174,6 +190,68 @@ class marcar_celdaTest(unittest.TestCase):
         ])
         self.assertFalse(estado['juego_terminado'])
         # Testeamos que haya una mina en el tablero
+        self.assertEqual(cant_minas_en_tablero(estado['tablero']), 1)
+
+
+   def test_bandera_a_vacio(self):
+        estado: EstadoJuego = {
+            'filas': 2,
+            'columnas': 2,
+            'minas': 1,
+            'tablero': [
+                [-1, 1],
+                [1, 1]
+            ],
+            'tablero_visible': [
+                [VACIO, VACIO],
+                [BANDERA, VACIO]
+            ],
+            'juego_terminado': False
+        }
+        marcar_celda(estado, 1, 0)
+        self.assertEqual(estado['tablero_visible'], [
+            [VACIO, VACIO],
+            [VACIO, VACIO]
+        ])
+        self.assertEqual(estado['filas'], 2)
+        self.assertEqual(estado['columnas'], 2)
+        self.assertEqual(estado['minas'], 1)
+        self.assertEqual(estado['tablero'], [
+            [-1, 1],
+            [1, 1]
+        ])
+        self.assertFalse(estado['juego_terminado'])
+        self.assertEqual(cant_minas_en_tablero(estado['tablero']), 1)
+    
+
+    def test_celda_en_juego_terminado(self):
+        estado: EstadoJuego = {
+            'filas': 2,
+            'columnas': 2,
+            'minas': 1,
+            'tablero': [
+                [1, -1],
+                [1, 1]
+            ],
+            'tablero_visible': [
+                [VACIO, VACIO],
+                [VACIO, VACIO]
+            ],
+            'juego_terminado': True 
+        }
+        marcar_celda(estado, 1, 1)
+        self.assertEqual(estado['tablero_visible'], [
+            [VACIO, VACIO],
+            [VACIO, VACIO]
+        ])
+        self.assertEqual(estado['filas'], 2)
+        self.assertEqual(estado['columnas'], 2)
+        self.assertEqual(estado['minas'], 1)
+        self.assertEqual(estado['tablero'], [
+            [1, -1],
+            [1, 1]
+        ])
+        self.assertFalse(estado['juego_terminado'])
         self.assertEqual(cant_minas_en_tablero(estado['tablero']), 1)
 
 
